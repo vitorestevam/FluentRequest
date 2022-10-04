@@ -1,6 +1,6 @@
 # Fluent Request
 
-This package is an option to do http request using fluent interface
+This package is an option to do http requests using fluent interface
 
 ``` go
 resp, err := FluentRequest().
