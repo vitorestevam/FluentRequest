@@ -47,9 +47,7 @@ func (r *fluentRequest) Run() (*http.Response, error) {
 
 	req, _ := http.NewRequest(r.method, r.url, r.body)
 
-	if r.header != nil {
-		req.Header = r.header
-	}
+	req.Header = r.header
 
 	return r.client.Do(req)
 }
