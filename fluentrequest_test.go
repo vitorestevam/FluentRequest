@@ -2,7 +2,6 @@ package fluentrequest
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
@@ -14,21 +13,13 @@ type Test struct {
 	name   string
 	method string
 	url    string
-	body   Body
+	body   string
 	want   ResponseResult
 }
 
 type ResponseResult struct {
-	responseBody Body
+	responseBody string
 	statusCode   int
-}
-
-type Body struct {
-	Id        int    `json:"id"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	UserId    int    `json:"userId"`
-	Completed bool   `json:"completed"`
 }
 
 func TestRequest(t *testing.T) {
@@ -38,79 +29,38 @@ func TestRequest(t *testing.T) {
 			method: http.MethodGet,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
 			want: ResponseResult{
-				statusCode: http.StatusOK,
-				responseBody: Body{
-					Id:        1,
-					UserId:    1,
-					Title:     "delectus aut autem",
-					Completed: false,
-				},
+				statusCode:   http.StatusOK,
+				responseBody: `{ "id": 1, "userId": 1, "title": "delectus aut autem", "completed": false }`,
 			},
 		},
 		{
 			name:   "Test POST request",
 			method: http.MethodPost,
 			url:    "https://jsonplaceholder.typicode.com/todos/",
-			body: Body{
-				Id:        201,
-				UserId:    2,
-				Title:     "foo",
-				Body:      "bar",
-				Completed: true,
-			},
+			body:   `{ "id": 201, "userId": 2, "title": "foo", "body": "bar", "completed": true }`,
 			want: ResponseResult{
-				statusCode: http.StatusCreated,
-				responseBody: Body{
-					Id:        201,
-					UserId:    2,
-					Title:     "foo",
-					Body:      "bar",
-					Completed: true,
-				},
+				statusCode:   http.StatusCreated,
+				responseBody: `{ "id": 201, "userId": 2, "title": "foo", "body": "bar", "completed": true }`,
 			},
 		},
 		{
 			name:   "Test PUT request",
 			method: http.MethodPut,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
-			body: Body{
-				Id:        1,
-				UserId:    1,
-				Title:     "foo",
-				Body:      "bar",
-				Completed: false,
-			},
+			body:   `{ "id": 1, "userId": 1, "title": "foo", "body": "bar", "completed": false }`,
 			want: ResponseResult{
-				statusCode: http.StatusOK,
-				responseBody: Body{
-					Id:        1,
-					UserId:    1,
-					Title:     "foo",
-					Body:      "bar",
-					Completed: false,
-				},
+				statusCode:   http.StatusOK,
+				responseBody: `{ "id": 1, "userId": 1, "title": "foo", "body": "bar", "completed": false }`,
 			},
 		},
 		{
 			name:   "Test PATCH request",
 			method: http.MethodPatch,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
-			body: Body{
-				Id:        1,
-				UserId:    1,
-				Title:     "foobar",
-				Body:      "",
-				Completed: true,
-			},
+			body:   `{ "id": 1, "userId": 1, "title": "foobar", "body": "", "completed": true }`,
 			want: ResponseResult{
-				statusCode: http.StatusOK,
-				responseBody: Body{
-					Id:        1,
-					UserId:    1,
-					Title:     "foobar",
-					Body:      "",
-					Completed: true,
-				},
+				statusCode:   http.StatusOK,
+				responseBody: `{ "id": 1, "userId": 1, "title": "foobar", "body": "", "completed": true }`,
 			},
 		},
 		{
@@ -118,7 +68,8 @@ func TestRequest(t *testing.T) {
 			method: http.MethodDelete,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
 			want: ResponseResult{
-				statusCode: http.StatusOK,
+				statusCode:   http.StatusOK,
+				responseBody: `{}`,
 			},
 		},
 	}
@@ -130,8 +81,8 @@ func TestRequest(t *testing.T) {
 	}
 }
 
-func createRequest(t *testing.T, method string, url string, requestBody interface{}, want ResponseResult) {
-	bodyBytes, _ := json.Marshal(requestBody)
+func createRequest(t *testing.T, method string, url string, requestBody string, want ResponseResult) {
+	bodyBytes := []byte(requestBody)
 
 	header := http.Header{
 		"Content-Type": {"application/json; charset=UTF-8"},
@@ -146,11 +97,7 @@ func createRequest(t *testing.T, method string, url string, requestBody interfac
 
 	responseBody, _ := io.ReadAll(resp.Body)
 
-	var deserializedBody Body
-
-	json.Unmarshal(responseBody, &deserializedBody)
-
 	assert.NoError(t, err)
-	assert.Equal(t, want.responseBody, deserializedBody)
+	assert.JSONEq(t, want.responseBody, string(responseBody))
 	assert.Equal(t, want.statusCode, resp.StatusCode)
 }
