@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestBody struct {
+type Body struct {
 	Id        int    `json:"id"`
 	Title     string `json:"title"`
 	Body      string `json:"body"`
@@ -19,7 +19,7 @@ type TestBody struct {
 }
 
 type ResponseResult struct {
-	responseBody TestBody
+	responseBody Body
 	statusCode   int
 }
 
@@ -27,7 +27,7 @@ type Test struct {
 	name   string
 	method string
 	url    string
-	body   TestBody
+	body   Body
 	want   ResponseResult
 }
 
@@ -39,7 +39,7 @@ func TestRequest(t *testing.T) {
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
 			want: ResponseResult{
 				statusCode: http.StatusOK,
-				responseBody: TestBody{
+				responseBody: Body{
 					Id:        1,
 					UserId:    1,
 					Title:     "delectus aut autem",
@@ -51,7 +51,7 @@ func TestRequest(t *testing.T) {
 			name:   "Test POST request",
 			method: http.MethodPost,
 			url:    "https://jsonplaceholder.typicode.com/todos/",
-			body: TestBody{
+			body: Body{
 				Id:        201,
 				UserId:    2,
 				Title:     "foo",
@@ -60,7 +60,7 @@ func TestRequest(t *testing.T) {
 			},
 			want: ResponseResult{
 				statusCode: http.StatusCreated,
-				responseBody: TestBody{
+				responseBody: Body{
 					Id:        201,
 					UserId:    2,
 					Title:     "foo",
@@ -73,7 +73,7 @@ func TestRequest(t *testing.T) {
 			name:   "Test PUT request",
 			method: http.MethodPut,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
-			body: TestBody{
+			body: Body{
 				Id:        1,
 				UserId:    1,
 				Title:     "foo",
@@ -82,7 +82,7 @@ func TestRequest(t *testing.T) {
 			},
 			want: ResponseResult{
 				statusCode: http.StatusOK,
-				responseBody: TestBody{
+				responseBody: Body{
 					Id:        1,
 					UserId:    1,
 					Title:     "foo",
@@ -95,7 +95,7 @@ func TestRequest(t *testing.T) {
 			name:   "Test PATCH request",
 			method: http.MethodPatch,
 			url:    "https://jsonplaceholder.typicode.com/todos/1",
-			body: TestBody{
+			body: Body{
 				Id:        1,
 				UserId:    1,
 				Title:     "foobar",
@@ -104,7 +104,7 @@ func TestRequest(t *testing.T) {
 			},
 			want: ResponseResult{
 				statusCode: http.StatusOK,
-				responseBody: TestBody{
+				responseBody: Body{
 					Id:        1,
 					UserId:    1,
 					Title:     "foobar",
@@ -146,7 +146,7 @@ func createRequest(t *testing.T, method string, url string, requestBody interfac
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
-	var deserializedBody TestBody
+	var deserializedBody Body
 
 	json.Unmarshal(responseBody, &deserializedBody)
 
