@@ -3,25 +3,12 @@ package fluentrequest
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-type Body struct {
-	Id        int    `json:"id"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
-	UserId    int    `json:"userId"`
-	Completed bool   `json:"completed"`
-}
-
-type ResponseResult struct {
-	responseBody Body
-	statusCode   int
-}
 
 type Test struct {
 	name   string
@@ -29,6 +16,19 @@ type Test struct {
 	url    string
 	body   Body
 	want   ResponseResult
+}
+
+type ResponseResult struct {
+	responseBody Body
+	statusCode   int
+}
+
+type Body struct {
+	Id        int    `json:"id"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	UserId    int    `json:"userId"`
+	Completed bool   `json:"completed"`
 }
 
 func TestRequest(t *testing.T) {
@@ -144,7 +144,7 @@ func createRequest(t *testing.T, method string, url string, requestBody interfac
 		Url(url).
 		Run()
 
-	responseBody, _ := ioutil.ReadAll(resp.Body)
+	responseBody, _ := io.ReadAll(resp.Body)
 
 	var deserializedBody Body
 
