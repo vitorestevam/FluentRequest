@@ -1,107 +1,120 @@
 package fluentrequest
 
 import (
-	"bytes"
-	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	expectedBody      = "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"delectus aut autem\",\n  \"completed\": false\n}"
-	expectedPOSTBody  = "{\n  \"completed\": false,\n  \"id\": 101,\n  \"title\": \"delectus aut autem\",\n  \"userId\": 1\n}"
-	expectedPUTBody   = "{\n  \"body\": \"bar\",\n  \"id\": 1,\n  \"title\": \"delectus aut autem\",\n  \"userId\": 1\n}"
-	expectedPATCHBody = "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"foo\",\n  \"body\": \"bar\"\n}"
-)
-
 func TestRequest(t *testing.T) {
-	resp, err := FluentRequest().
-		Method("GET").
-		Url("https://jsonplaceholder.typicode.com/todos/1").
-		Run()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	assert.NoError(t, err)
-	assert.Equal(t, expectedBody, string(body))
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-}
-
-func TestPOST(t *testing.T) {
-	data, _ := json.Marshal(map[string]interface{}{
-		"userId":    1,
-		"id":        1,
-		"title":     "delectus aut autem",
-		"completed": false,
-	})
-
-	header := http.Header{
-		"Content-Type": {"application/json; charset=UTF-8"},
+	tests := []struct {
+		name   string
+		method string
+		url    string
+		header http.Header
+		body   string
+		want   struct {
+			responseBody string
+			statusCode   int
+		}
+	}{
+		{
+			name:   "Test GET request",
+			method: http.MethodGet,
+			url:    "https://jsonplaceholder.typicode.com/todos/1",
+			header: http.Header{
+				"Content-Type": {"application/json; charset=UTF-8"},
+			},
+			want: struct {
+				responseBody string
+				statusCode   int
+			}{
+				responseBody: `{ "id": 1, "userId": 1, "title": "delectus aut autem", "completed": false }`,
+				statusCode:   http.StatusOK,
+			},
+		},
+		{
+			name:   "Test POST request",
+			method: http.MethodPost,
+			url:    "https://jsonplaceholder.typicode.com/todos/",
+			header: http.Header{
+				"Content-Type": {"application/json; charset=UTF-8"},
+			},
+			body: `{ "id": 201, "userId": 2, "title": "foo", "body": "bar", "completed": true }`,
+			want: struct {
+				responseBody string
+				statusCode   int
+			}{
+				statusCode:   http.StatusCreated,
+				responseBody: `{ "id": 201, "userId": 2, "title": "foo", "body": "bar", "completed": true }`,
+			},
+		},
+		{
+			name:   "Test PUT request",
+			method: http.MethodPut,
+			url:    "https://jsonplaceholder.typicode.com/todos/1",
+			header: http.Header{
+				"Content-Type": {"application/json; charset=UTF-8"},
+			},
+			body: `{ "id": 1, "userId": 1, "title": "foo", "body": "bar", "completed": false }`,
+			want: struct {
+				responseBody string
+				statusCode   int
+			}{
+				statusCode:   http.StatusOK,
+				responseBody: `{ "id": 1, "userId": 1, "title": "foo", "body": "bar", "completed": false }`,
+			},
+		},
+		{
+			name:   "Test PATCH request",
+			method: http.MethodPatch,
+			url:    "https://jsonplaceholder.typicode.com/todos/1",
+			header: http.Header{
+				"Content-Type": {"application/json; charset=UTF-8"},
+			},
+			body: `{ "id": 1, "userId": 1, "title": "foobar", "body": "", "completed": true }`,
+			want: struct {
+				responseBody string
+				statusCode   int
+			}{
+				statusCode:   http.StatusOK,
+				responseBody: `{ "id": 1, "userId": 1, "title": "foobar", "body": "", "completed": true }`,
+			},
+		},
+		{
+			name:   "Test DELETE request",
+			method: http.MethodDelete,
+			url:    "https://jsonplaceholder.typicode.com/todos/1",
+			header: http.Header{
+				"Content-Type": {"application/json; charset=UTF-8"},
+			},
+			want: struct {
+				responseBody string
+				statusCode   int
+			}{
+				statusCode:   http.StatusOK,
+				responseBody: `{}`,
+			},
+		},
 	}
 
-	resp, err := FluentRequest().
-		Method(http.MethodPost).
-		Url("https://jsonplaceholder.typicode.com/posts").
-		Body(bytes.NewBuffer(data)).
-		Header(header).
-		Run()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := FluentRequest().
+				Method(tt.method).
+				Body(strings.NewReader(tt.body)).
+				Header(tt.header).
+				Url(tt.url).
+				Run()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+			responseBody, _ := io.ReadAll(resp.Body)
 
-	assert.NoError(t, err)
-	assert.Equal(t, expectedPOSTBody, string(body))
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
-}
-
-func TestPUT(t *testing.T) {
-	data, _ := json.Marshal(map[string]interface{}{
-		"id":     1,
-		"title":  "delectus aut autem",
-		"body":   "bar",
-		"userId": 1,
-	})
-
-	header := http.Header{
-		"Content-Type": {"application/json; charset=UTF-8"},
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
+			assert.JSONEq(t, tt.want.responseBody, string(responseBody))
+		})
 	}
-
-	resp, err := FluentRequest().
-		Method(http.MethodPut).
-		Url("https://jsonplaceholder.typicode.com/posts/1").
-		Body(bytes.NewBuffer(data)).
-		Header(header).
-		Run()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	assert.NoError(t, err)
-	assert.Equal(t, expectedPUTBody, string(body))
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-}
-
-func TestPATCH(t *testing.T) {
-	data, _ := json.Marshal(map[string]interface{}{
-		"title": "foo",
-		"body":  "bar",
-	})
-
-	header := http.Header{
-		"Content-Type": {"application/json; charset=UTF-8"},
-	}
-
-	resp, err := FluentRequest().
-		Method(http.MethodPatch).
-		Url("https://jsonplaceholder.typicode.com/posts/1").
-		Body(bytes.NewBuffer(data)).
-		Header(header).
-		Run()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	assert.NoError(t, err)
-	assert.Equal(t, expectedPATCHBody, string(body))
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
